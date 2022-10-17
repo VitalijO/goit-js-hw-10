@@ -3,6 +3,7 @@ import debounce from 'lodash.debounce';
 import Notiflix from 'notiflix';
 import countryTpl from '../src/js-templates/counry-list.hbs'
 import countryInfoTpl from '../src/js-templates/country-info.hbs' 
+import { url, fetchCountries}  from './fetchCountries.js'
  
  
 const DEBOUNCE_DELAY = 300;
@@ -15,42 +16,41 @@ const containerCountryInfo = document.querySelector('.country-info')
 function createMarkupCountryList(arr) {
     return arr.map(country=>countryTpl(country)).join('')}
 
+
 function createMarkupCountryInfo(arr) {
     return arr.map(country => countryInfoTpl(country)).join('')
 }
-    
+function destroyTpl(a) {
+    a.innerHTML = "";
+}
+     
+input.addEventListener("input", debounce(fetchCountrieByName, DEBOUNCE_DELAY ))
 
-  
-input.addEventListener("input", debounce(fetchCountries, DEBOUNCE_DELAY ))
-
-
-function fetchCountries(e) {
+function fetchCountrieByName(e) {
     e.preventDefault();
     const inputValue = e.target.value.trim()
     if (!inputValue) {
-       containerCountryList.innerHTML = "";
-       containerCountryInfo.innerHTML = "";
+       destroyTpl(containerCountryList)
+       destroyTpl(containerCountryInfo)
         return
     }
     
-const r = fetch(`https://restcountries.com/v3.1/name/${inputValue}/?fields=name,capital,population,flags,languages`)
-.then(response => {
-    if (!response.ok) {
-        throw new Error(response.status);
-    }
-    console.log(response)
-    return response.json();
-  })
-    .then(data => {
-        if (data.length === 1) {
+fetchCountries(inputValue).then(manageSearchResult) .catch(error => {
+      Notiflix.Notify.failure("Oops, there is no country with that name");    
+  }); 
+//fetchCountrieByName().then(data => { manageSearchResult(data) }).catch(error => {..... its the same!!!
+}
+
+function manageSearchResult(data) {
+    if (data.length === 1) {
             const markupInfo = createMarkupCountryInfo(data)
-            containerCountryList.innerHTML = "";
-            containerCountryInfo.innerHTML = markupInfo;
+            destroyTpl(containerCountryList)
+            containerCountryInfo.innerHTML = markupInfo;  
         }
 
         else if (data.length>1 && data.length<10) {
             const markupCountrys = createMarkupCountryList(data)
-            containerCountryInfo.innerHTML = "";
+            destroyTpl(containerCountryInfo)
             containerCountryList.innerHTML = markupCountrys
         }
 
@@ -59,14 +59,8 @@ const r = fetch(`https://restcountries.com/v3.1/name/${inputValue}/?fields=name,
         }
 
         else if (data.length===""){
-         containerCountryList.innerHTML = "";
-        containerCountryInfo.innerHTML = "";
+         destroyTpl(containerCountryList)
+         destroyTpl(containerCountryInfo)
         }
-           
-  })
-  .catch(error => {
-      console.log(error)
-      Notiflix.Notify.failure("Oops, there is no country with that name");
-      
-  });
 }
+
